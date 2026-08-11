@@ -9,7 +9,7 @@
 
 **Пиксель-арт игра, где ты повторяешь эталонные рисунки по клеточкам.**
 
-![Демо игры](https://yuliapositive.github.io/kliker-xydoshnik/)
+[Демо игры](https://yuliapositive.github.io/kliker-xydoshnik/)
 
 ## 🎯 Суть игры
 
