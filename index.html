@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Кликер-Художник</title>
+    <style>
+        /* ===== БАЗА ===== */
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0f0f1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+        }
+        .game {
+            background: #1a1a2e;
+            border-radius: 24px;
+            padding: 20px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        /* ===== ШАПКА ===== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .header .title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .stats {
+            display: flex;
+            gap: 16px;
+            color: #aaa;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .stats span {
+            background: #2a2a44;
+            padding: 4px 14px;
+            border-radius: 30px;
+            color: #fff;
+        }
+        .stats .record {
+            color: #f1c40f;
+        }
+
+        /* ===== ПОЛЯ ===== */
+        .fields {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .field-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            min-width: 140px;
+        }
+        .field-wrap .label {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        canvas {
+            border-radius: 12px;
+            background: #111;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            image-rendering: pixelated;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1/1;
+            max-width: 300px;
+            touch-action: none;
+        }
+        .field-wrap .hint {
+            color: #555;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        /* ===== УПРАВЛЕНИЕ ===== */
+        .controls {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Палитра */
+        .palette {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: 0.15s;
+            flex-shrink: 0;
+            touch-action: manipulation;
+        }
+        .color-btn.active {
+            border-color: #fff;
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
+        }
+
+        /* Кнопки */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn-row button {
+            background: #2a2a44;
+            border: none;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+            flex: 1;
+            min-width: 80px;
+            touch-action: manipulation;
+            white-space: nowrap;
+        }
+        .btn-row button:active {
+            transform: scale(0.94);
+        }
+        .btn-row button.primary {
+            background: #4a4a8a;
+        }
+        .btn-row button.primary:hover {
+            background: #5a5aaa;
+        }
+        .btn-row button.danger {
+            background: #6a2a3a;
+        }
+        .btn-row button.danger:hover {
+            background: #8a3a4a;
+        }
+        .btn-row button.success {
+            background: #2a6a4a;
+        }
+        .btn-row button.success:hover {
+            background: #3a8a5a;
+        }
+
+        /* ===== ВЫБОР ТАРГЕТА ===== */
+        .target-select {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 4px;
+        }
+        .target-select button {
+            background: #22223a;
+            border: 2px solid #333;
+            color: #ccc;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.15s;
+            touch-action: manipulation;
+        }
+        .target-select button.active {
+            border-color: #f1c40f;
+            color: #fff;
+            background: #2a2a44;
+        }
+        .target-select button:active {
+            transform: scale(0.94);
+        }
+
+        /* ===== РЕЗУЛЬТАТ ===== */
+        .result {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            padding: 8px 0 4px;
+            min-height: 40px;
+        }
+        .result.good {
+            color: #2ecc71;
+        }
+        .result.bad {
+            color: #e74c3c;
+        }
+
+        /* ===== АДАПТИВ ===== */
+        @media (max-width: 500px) {
+            .game {
+                padding: 12px;
+            }
+            .header .title {
+                font-size: 16px;
+            }
+            .stats {
+                font-size: 12px;
+                gap: 8px;
+            }
+            .stats span {
+                padding: 2px 10px;
+            }
+            .fields {
+                gap: 10px;
+            }
+            .color-btn {
+                width: 34px;
+                height: 34px;
+            }
+            .btn-row button {
+                font-size: 12px;
+                padding: 8px 14px;
+                min-width: 60px;
+            }
+            .target-select button {
+                font-size: 11px;
+                padding: 4px 10px;
+            }
+            .result {
+                font-size: 15px;
+                min-height: 32px;
+            }
+        }
+        @media (max-width: 380px) {
+            .fields {
+                flex-direction: column;
+                align-items: center;
+            }
+            .field-wrap {
+                width: 100%;
+                max-width: 260px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game" id="app">
+    <!-- ШАПКА -->
+    <div class="header">
+        <div class="title">🎨 Кликер-Художник</div>
+        <div class="stats">
+            <span class="record" id="recordDisplay">🏆 0%</span>
+        </div>
+    </div>
+
+    <!-- ПОЛЯ -->
+    <div class="fields">
+        <div class="field-wrap">
+            <div class="label">🎯 Твой рисунок</div>
+            <canvas id="playerCanvas" width="400" height="400"></canvas>
+            <div class="hint">👆 клик — закрасить, повторный — стереть</div>
+        </div>
+        <div class="field-wrap">
+            <div class="label">⭐ Эталон</div>
+            <canvas id="targetCanvas" width="400" height="400"></canvas>
+        </div>
+    </div>
+
+    <!-- ВЫБОР ТАРГЕТА -->
+    <div class="target-select" id="targetSelect"></div>
+
+    <!-- ПАЛИТРА -->
+    <div class="palette" id="palette"></div>
+
+    <!-- КНОПКИ -->
+    <div class="controls">
+        <div class="btn-row">
+            <button class="primary" id="checkBtn">✅ Проверить</button>
+            <button class="success" id="randomBtn">🎲 Случайный</button>
+            <button class="danger" id="clearBtn">🗑 Очистить</button>
+        </div>
+        <div class="btn-row">
+            <button id="resetBtn">🔄 Сбросить всё</button>
+        </div>
+    </div>
+
+    <!-- РЕЗУЛЬТАТ -->
+    <div class="result" id="resultDisplay">💡 Выбери эталон и рисуй!</div>
+</div>
+
+<script>
+    // ============================================================
+    //  КОНФИГ
+    // ============================================================
+    const SIZE = 20;
+    const PIXEL = 20;
+    const TOTAL_CELLS = SIZE * SIZE;
+    const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6'];
+    const COLOR_NAMES = ['Красный', 'Синий', 'Зелёный', 'Жёлтый', 'Фиолетовый'];
+
+    // ============================================================
+    //  ЭТАЛОНЫ (20x20)
+    // ============================================================
+    const TARGETS = {};
+
+    // ---- Сердечко ----
+    TARGETS.heart = [
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0],
+        [0,0,0,0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,0,0],
+        [0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],
+        [0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],
+        [0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0],
+        [0,0,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    ];
+
+    // ---- Цветок ----
+    TARGETS.flower = (() => {
+        const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        const c = 10;
+        const petals = [
+            [c, c-5], [c, c+5], [c-5, c], [c+5, c],
+            [c-4, c-4], [c+4, c-4], [c-4, c+4], [c+4, c+4]
+        ];
+        petals.forEach(([r, col]) => {
+            for (let dr = -1; dr <= 1; dr++)
+                for (let dc = -1; dc <= 1; dc++)
+                    if (r+dr >= 0 && r+dr < SIZE && col+dc >= 0 && col+dc < SIZE)
+                        g[r+dr][col+dc] = 1;
+        });
+        for (let dr = -1; dr <= 1; dr++)
+            for (let dc = -1; dc <= 1; dc++)
+                if (c+dr >= 0 && c+dr < SIZE && c+dc >= 0 && c+dc < SIZE)
+                    g[c+dr][c+dc] = 1;
+        return g;
+    })();
+
+    // ---- Заяц ----
+    TARGETS.rabbit = (() => {
+        const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        for (let r = 4; r <= 8; r++)
+            for (let c = 6; c <= 10; c++)
+                if ((r-6)**2 + (c-8)**2 <= 8) g[r][c] = 1;
+        for (let r = 1; r <= 5; r++) { g[r][6] = 1; g[r][10] = 1; }
+        for (let r = 1; r <= 3; r++) { g[r][5] = 1; g[r][11] = 1; }
+        g[5][7] = 2; g[5][9] = 2;
+        return g;
+    })();
+
+    // ---- Щенок ----
+    TARGETS.dog = (() => {
+        const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        for (let r = 5; r <= 10; r++)
+            for (let c = 5; c <= 11; c++)
+                if ((r-7.5)**2 + (c-8)**2 <= 12) g[r][c] = 1;
+        for (let r = 4; r <= 7; r++) { g[r][3] = 1; g[r][13] = 1; }
+        for (let r = 4; r <= 6; r++) { g[r][2] = 1; g[r][14] = 1; }
+        g[8][8] = 2;
+        g[6][6] = 2; g[6][10] = 2;
+        return g;
+    })();
+
+    // ---- Кот ----
+    TARGETS.cat = (() => {
+        const g = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        for (let r = 5; r <= 10; r++)
+            for (let c = 6; c <= 12; c++)
+                if (((r-7.5)**2)/4 + ((c-9)**2)/6 <= 4) g[r][c] = 1;
+        for (let i = 0; i < 4; i++) {
+            g[4+i][5-i] = 1;
+            g[4+i][14+i] = 1;
+        }
+        g[6][7] = 2; g[6][11] = 2;
+        g[8][9] = 2;
+        for (let i = -2; i <= 2; i++) {
+            if (i !== 0) { g[8+i][5] = 1; g[8+i][13] = 1; }
+        }
+        return g;
+    })();
+
+    // ---- Свободный выбор (пустой) ----
+    TARGETS.free = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+
+    // ---- Список для UI ----
+    const TARGET_LIST = [
+        { id: 'heart', label: '❤️ Сердце' },
+        { id: 'flower', label: '🌸 Цветок' },
+        { id: 'rabbit', label: '🐰 Заяц' },
+        { id: 'dog', label: '🐶 Щенок' },
+        { id: 'cat', label: '🐱 Кот' },
+        { id: 'free', label: '🎨 Свободный' },
+    ];
+
+    // ============================================================
+    //  СОСТОЯНИЕ
+    // ============================================================
+    let grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+    let target = TARGETS.heart.map(row => [...row]);
+    let currentColor = COLORS[0];
+    let currentTargetId = 'heart';
+    let record = parseInt(localStorage.getItem('clickerArtistRecord')) || 0;
+
+    // DOM
+    const playerCanvas = document.getElementById('playerCanvas');
+    const ctxP = playerCanvas.getContext('2d');
+    const targetCanvas = document.getElementById('targetCanvas');
+    const ctxT = targetCanvas.getContext('2d');
+    const recordDisplay = document.getElementById('recordDisplay');
+    const resultDisplay = document.getElementById('resultDisplay');
+
+    // ============================================================
+    //  РЕНДЕР
+    // ============================================================
+    function drawGrid(ctx, data, size, pixelSize) {
+        ctx.clearRect(0, 0, size * pixelSize, size * pixelSize);
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+                const val = data[r][c];
+                if (val === 0) {
+                    ctx.fillStyle = '#1a1a2e';
+                } else {
+                    ctx.fillStyle = COLORS[val - 1] || '#888';
+                }
+                ctx.fillRect(c * pixelSize, r * pixelSize, pixelSize - 1, pixelSize - 1);
+            }
+        }
+    }
+
+    function render() {
+        drawGrid(ctxP, grid, SIZE, PIXEL);
+        drawGrid(ctxT, target, SIZE, PIXEL);
+        recordDisplay.textContent = `🏆 ${record}%`;
+    }
+
+    // ============================================================
+    //  ПРОВЕРКА
+    // ============================================================
+    function checkMatch() {
+        let correct = 0;
+        let total = SIZE * SIZE;
+        for (let r = 0; r < SIZE; r++) {
+            for (let c = 0; c < SIZE; c++) {
+                const isPlayerFilled = grid[r][c] !== 0;
+                const isTargetFilled = target[r][c] !== 0;
+                if (isPlayerFilled === isTargetFilled) correct++;
+            }
+        }
+        const percent = Math.round((correct / total) * 100);
+
+        // Обновляем рекорд
+        if (percent > record) {
+            record = percent;
+            localStorage.setItem('clickerArtistRecord', String(record));
+            recordDisplay.textContent = `🏆 ${record}%`;
+        }
+
+        // Вывод
+        resultDisplay.className = 'result';
+        if (percent === 100) {
+            resultDisplay.textContent = '🎉 ИДЕАЛЬНО! 100%! Шедевр!';
+            resultDisplay.classList.add('good');
+        } else if (percent >= 80) {
+            resultDisplay.textContent = `👍 Отлично! ${percent}% совпадения`;
+            resultDisplay.classList.add('good');
+        } else if (percent >= 50) {
+            resultDisplay.textContent = `📐 ${percent}% — неплохо, но есть над чем работать`;
+            resultDisplay.className = 'result';
+        } else {
+            resultDisplay.textContent = `😅 ${percent}% — попробуй ещё раз!`;
+            resultDisplay.classList.add('bad');
+        }
+    }
+
+    // ============================================================
+    //  ГЕНЕРАТОР СЛУЧАЙНОЙ ФИГУРЫ
+    // ============================================================
+    function generateRandomTarget() {
+        const newTarget = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        const c = Math.floor(SIZE / 2);
+        const shape = Math.floor(Math.random() * 6);
+
+        switch (shape) {
+            case 0: {
+                const size = 4 + Math.floor(Math.random() * 6);
+                const half = Math.floor(size / 2);
+                for (let r = c - half; r <= c + half; r++)
+                    for (let col = c - half; col <= c + half; col++)
+                        if (r >= 0 && r < SIZE && col >= 0 && col < SIZE) newTarget[r][col] = 1;
+                break;
+            }
+            case 1: {
+                const len = 4 + Math.floor(Math.random() * 4);
+                for (let i = -len; i <= len; i++) {
+                    if (c + i >= 0 && c + i < SIZE) {
+                        newTarget[c + i][c] = 1;
+                        newTarget[c][c + i] = 1;
+                    }
+                }
+                break;
+            }
+            case 2: {
+                const len = 4 + Math.floor(Math.random() * 4);
+                for (let i = -len; i <= len; i++) {
+                    if (c + i >= 0 && c + i < SIZE) {
+                        newTarget[c + i][c + i] = 1;
+                        newTarget[c + i][c - i] = 1;
+                    }
+                }
+                break;
+            }
+            case 3: {
+                const radius = 4 + Math.floor(Math.random() * 4);
+                for (let r = 0; r < SIZE; r++)
+                    for (let col = 0; col < SIZE; col++)
+                        if ((r - c) ** 2 + (col - c) ** 2 <= radius ** 2)
+                            newTarget[r][col] = 1;
+                break;
+            }
+            case 4: {
+                const size = 5 + Math.floor(Math.random() * 4);
+                for (let i = 0; i < size; i++)
+                    for (let j = -i; j <= i; j++)
+                        if (c + i < SIZE && c + j >= 0 && c + j < SIZE)
+                            newTarget[c + i][c + j] = 1;
+                break;
+            }
+            case 5: {
+                const w = 4 + Math.floor(Math.random() * 6);
+                const h = 4 + Math.floor(Math.random() * 6);
+                for (let r = c - Math.floor(h/2); r <= c + Math.floor(h/2); r++)
+                    for (let col = c - Math.floor(w/2); col <= c + Math.floor(w/2); col++)
+                        if (r >= 0 && r < SIZE && col >= 0 && col < SIZE) newTarget[r][col] = 1;
+                break;
+            }
+        }
+        return newTarget;
+    }
+
+    // ============================================================
+    //  УСТАНОВИТЬ ТАРГЕТ
+    // ============================================================
+    function setTarget(id) {
+        currentTargetId = id;
+        if (id === 'free') {
+            target = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        } else {
+            target = TARGETS[id].map(row => [...row]);
+        }
+        render();
+
+        document.querySelectorAll('.target-select button').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.id === id);
+        });
+
+        resultDisplay.textContent = '🎯 Выбран эталон, рисуй!';
+        resultDisplay.className = 'result';
+    }
+
+    // ============================================================
+    //  СБРОС
+    // ============================================================
+    function resetAll() {
+        grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        render();
+        resultDisplay.textContent = '🔄 Всё сброшено! Начинай заново';
+        resultDisplay.className = 'result';
+    }
+
+    // ============================================================
+    //  КЛИК ПО ПОЛЮ (мышь + тач)
+    // ============================================================
+    function handleCanvasClick(e) {
+        e.preventDefault();
+
+        const rect = playerCanvas.getBoundingClientRect();
+        const scaleX = playerCanvas.width / rect.width;
+        const scaleY = playerCanvas.height / rect.height;
+
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+
+        const col = Math.floor(x / PIXEL);
+        const row = Math.floor(y / PIXEL);
+
+        if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) {
+            if (grid[row][col] === 0) {
+                grid[row][col] = COLORS.indexOf(currentColor) + 1;
+            } else {
+                grid[row][col] = 0;
+            }
+            render();
+            resultDisplay.textContent = '✏️ Рисуй дальше!';
+            resultDisplay.className = 'result';
+        }
+    }
+
+    playerCanvas.addEventListener('click', handleCanvasClick);
+    playerCanvas.addEventListener('touchstart', handleCanvasClick, { passive: false });
+
+    // ============================================================
+    //  ПАЛИТРА
+    // ============================================================
+    function initPalette() {
+        const palette = document.getElementById('palette');
+        COLORS.forEach((color, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'color-btn';
+            btn.style.background = color;
+            btn.title = COLOR_NAMES[i];
+            if (color === currentColor) btn.classList.add('active');
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentColor = color;
+            });
+            palette.appendChild(btn);
+        });
+    }
+
+    // ============================================================
+    //  ВЫБОР ТАРГЕТА (UI)
+    // ============================================================
+    function initTargetSelect() {
+        const container = document.getElementById('targetSelect');
+        TARGET_LIST.forEach(({ id, label }) => {
+            const btn = document.createElement('button');
+            btn.dataset.id = id;
+            btn.textContent = label;
+            if (id === 'heart') btn.classList.add('active');
+            btn.addEventListener('click', () => {
+                setTarget(id);
+            });
+            container.appendChild(btn);
+        });
+    }
+
+    // ============================================================
+    //  КНОПКИ
+    // ============================================================
+    document.getElementById('checkBtn').addEventListener('click', checkMatch);
+
+    document.getElementById('randomBtn').addEventListener('click', () => {
+        const randomTarget = generateRandomTarget();
+        target = randomTarget;
+        currentTargetId = 'random';
+        render();
+
+        document.querySelectorAll('.target-select button').forEach(btn => btn.classList.remove('active'));
+
+        resultDisplay.textContent = '🎲 Случайный эталон!';
+        resultDisplay.className = 'result';
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        grid = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+        render();
+        resultDisplay.textContent = '🧹 Поле очищено';
+        resultDisplay.className = 'result';
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+    // ============================================================
+    //  СТАРТ
+    // ============================================================
+    function init() {
+        initPalette();
+        initTargetSelect();
+        setTarget('heart');
+        recordDisplay.textContent = `🏆 ${record}%`;
+    }
+
+    init();
+</script>
+</body>
+</html>
